@@ -32,9 +32,11 @@ Most of the setup is automated, allowing for fast provisioning in cloud and virt
 
 ## The Guide
 
-### Step 1: Base Debian install
+### Step 1: Base Operating System (Debian) install
 
 Each node is based on a minimal install of Debian. If you are in a virtual or cloud environment then you may wish to consider snapshotting your node at the end of this step, in order to facilitate rapid testing cycles.
+
+#### Install Debian
 
 1. Insert the Debian installation media and power on the node
 1. At the GRUB menu, select **Graphical install**
@@ -60,6 +62,10 @@ Each node is based on a minimal install of Debian. If you are in a virtual or cl
 1. Select **Yes** to _Install the GRUB boot loader_
 1. Select **<code>/dev/sda</code>** for the _Device for boot loader installation_
 1. Select **Continue** to _Installation complete_
+  
+#### Post-install setup
+
+
 
 
 ### Step 2: 
