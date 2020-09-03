@@ -55,8 +55,8 @@ Each node is based on a minimal install of Debian. If you are in a virtual or cl
 1. Configure _HTTP proxy_ if necessary
 1. Choose if you wish to _Participate in the package usage survey_
 1. Select only the following software to install:
-  - SSH server
-  - standard system utilities
+   1. SSH server
+   1. standard system utilities
 1. Select **Yes** to _Install the GRUB boot loader_
 1. Select **<code>/dev/sda</code>** for the _Device for boot loader installation_
 1. Select **Continue** to _Installation complete_
