@@ -1,0 +1,131 @@
+#!/bin/bash
+
+SERVER1=$1
+SERVER2=$2
+SERVER3=$3
+
+IFS=':' read server_name server_ip <<< "$SERVER1"
+SERVER1_NAME=$server_name
+SERVER1_IP=$server_ip
+
+IFS=':' read server_name server_ip <<< "$SERVER2"
+SERVER2_NAME=$server_name
+SERVER2_IP=$server_ip
+
+IFS=':' read server_name server_ip <<< "$SERVER3"
+SERVER3_NAME=$server_name
+SERVER3_IP=$server_ip
+
+server_names=($SERVER1_NAME $SERVER2_NAME $SERVER3_NAME)
+server_pairs=($SERVER1 $SERVER2 $SERVER3)
+
+echo "Generating etcd config files..."
+for server_pair in "${server_pairs[@]}"
+do
+	IFS=':' read THIS_SERVER_NAME THIS_SERVER_IP <<< "$server_pair"
+	m4 -D __THIS_SERVER_NAME__=$THIS_SERVER_NAME \
+		-D __THIS_SERVER_IP__=$THIS_SERVER_IP \
+		-D __SERVER1_NAME__=$SERVER1_NAME \
+		-D __SERVER2_NAME__=$SERVER2_NAME \
+		-D __SERVER3_NAME__=$SERVER3_NAME \
+		-D __SERVER1_IP__=$SERVER1_IP \
+		-D __SERVER2_IP__=$SERVER2_IP \
+		-D __SERVER3_IP__=$SERVER3_IP \
+		etcd.default.template > $THIS_SERVER_NAME.etcd.default
+done
+
+for server_name in "${server_names[@]}"
+do	
+	echo "Waiting for ssh on $server_name to become available..."
+	until $(ssh -o ConnectTimeout=1 root@$server_name "echo")
+	do
+	  printf .
+	  sleep 1
+	done
+
+	echo "Waiting for apt to stop running on $server_name..."
+	until $(ps aux | grep -v grep | grep -q apt)
+	do
+	  printf .
+	  sleep 1
+	done
+
+	echo "Install supporting packages..."
+	ssh root@$server_name apt-get install -y wget curl ntp xfsprogs gnupg
+
+	echo "Copying etcd config..."
+	scp $server_name.etcd.default root@$server_name:/etc/default/etcd
+
+	echo "Disable auto-start of etcd..."
+	scp policy-rc.d root@$server_name:/usr/sbin/policy-rc.d
+	ssh root@$server_name chmod +x /usr/sbin/policy-rc.d
+
+	echo "Install etcd..."
+	ssh root@$server_name 'apt-get -o DPkg::Options::="--force-confold" -y install etcd'
+done
+
+for server_name in "${server_names[@]}"
+do	
+	echo "Starting etcd on $server_name..."
+	ssh root@$server_name '/etc/init.d/etcd start' &
+	ssh root@$server_name 'rm -f /usr/sbin/policy-rc.d'
+done
+
+for server_name in "${server_names[@]}"
+do	
+	echo "Installing glusterfs on $server_name..."
+	scp gluster-install.sh root@$server_name:/root/gluster-install.sh
+	ssh root@$server_name chmod +x /root/gluster-install.sh
+	ssh root@$server_name /root/gluster-install.sh
+done
+
+echo "Setting up glusterfs volume (via $SERVER1_NAME)..."
+scp gluster-setup-volume.sh root@$SERVER1_NAME:/root/gluster-setup-volume.sh
+ssh root@$SERVER1_NAME chmod +x /root/gluster-setup-volume.sh
+ssh root@$SERVER1_NAME /root/gluster-setup-volume.sh
+
+for server_name in "${server_names[@]}"
+do
+	echo "Setting up Gasnesha NFS on $server_name..."
+	scp ganesha-setup.sh root@$server_name:/root/ganesha-setup.sh
+	ssh root@$server_name chmod +x /root/ganesha-setup.sh
+	ssh root@$server_name /root/ganesha-setup.sh $server_name
+done
+
+for server_name in "${server_names[@]}"
+do	
+	echo "Installing k3s on $server_name..."
+	ssh root@$server_name "curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=v1.18.8+k3s1 sh -s - server --datastore-endpoint http://$SERVER1_IP:2379,http://$SERVER2_IP:2379,http://$SERVER3_IP:2379"
+done
+
+until $(scp -o ConnectTimeout=1 -q root@$SERVER1_NAME:/etc/rancher/k3s/k3s.yaml ~/.kube/config)
+do
+  printf .
+  sleep 1
+done
+
+for server_name in "${server_names[@]}"
+do	
+	echo "Replacing k3s binary on $server_name with new version supporting glusterfs..."
+	ssh root@$server_name 'systemctl stop k3s'
+	ssh root@$server_name 'cp /usr/local/bin/k3s /usr/local/bin/k3s.old'
+	scp k3s root@$server_name:/usr/local/bin/k3s
+	ssh root@$server_name 'systemctl start k3s'
+done
+
+echo "Modifying local kube config..."
+sed -e "s/127\.0\.0\.1:6443/$SERVER1_NAME:6443/g" -i '' ~/.kube/config
+
+echo "Deploying k8s dashboard..."
+kubectl create -f dashboard-2.0.3-recommended.yaml
+kubectl create -f dashboard.admin-user.yml -f dashboard.admin-user-role.yml
+
+echo "Deploying gluster service and endpoints..."
+kubectl apply -f gluster-endpoints.yml
+kubectl apply -f gluster-service.yml
+
+echo "Deploying demo application..."
+kubectl apply -f nginx.yml
+
+echo "Retrieving dashboard token..."
+kubectl -n kubernetes-dashboard describe secret admin-user-token | grep ^token
