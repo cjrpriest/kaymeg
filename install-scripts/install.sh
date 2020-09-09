@@ -110,7 +110,7 @@ done
 for server_name in "${server_names[@]}"
 do	
 	echo "Installing k3s on $server_name..."
-	ssh root@$server_name "curl -sfL https://raw.githubusercontent.com/cjrpriest/k3s-glusterfs/release-1.18/install.sh | INSTALL_K3S_VERSION=v1.18.8+k3s1+glusterfs sh -s - server --datastore-endpoint http://$SERVER1_IP:2379,http://$SERVER2_IP:2379,http://$SERVER3_IP:2379"
+	ssh root@$server_name "curl -sfL https://raw.githubusercontent.com/cjrpriest/k3s-glusterfs/release-1.18/install.sh | INSTALL_K3S_VERSION=v1.18.8+k3s1+glusterfs INSTALL_K3S_EXEC=\"server --disable traefik\" sh -s - server --datastore-endpoint http://$SERVER1_IP:2379,http://$SERVER2_IP:2379,http://$SERVER3_IP:2379"
 done
 
 until $(scp -o ConnectTimeout=1 -q root@$SERVER1_NAME:/etc/rancher/k3s/k3s.yaml ~/.kube/config)
