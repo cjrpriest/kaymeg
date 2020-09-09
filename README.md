@@ -34,6 +34,13 @@ Most of the setup is automated, allowing for fast provisioning in cloud and virt
 
 ## The Guide
 
+There are three steps to getting up and running:
+1. Base Operating System (Debian) install _(this is the hardest bit!)_
+1. Run `install.sh` script
+1. Use k8s!
+
+That's it!
+
 ### Step 1: Base Operating System (Debian) install
 
 Each node is based on a minimal install of Debian. If you are in a virtual or cloud environment then you may wish to consider snapshotting your node at the end of this step, in order to facilitate rapid testing cycles.
@@ -87,12 +94,16 @@ After Debian has booted for the first time, follow these steps.
 
 At this stage, if you are using virtualised infrastructure, you probably want to shutdown your instance and take a snapshot, as from here things are more automated 
 
-### Step 2: Run install script
+### Step 2: Run `install.sh` script
 
 #### Clone this repo
 
 1. Clone this repo: `git clone https://github.com/cjrpriest/k3s-etcd-glusterfs-metallb`
 1. Execute `install.sh` (see below for usage)
+
+### Step 3: Use k8s!
+
+That's it, you're done!
 
 ## Usage `install.sh`
 
@@ -108,10 +119,6 @@ At this stage, if you are using virtualised infrastructure, you probably want to
 
 Example Usage: 
 `./install.sh k8s-server1:10.8.8.1 k8s-server2:10.8.8.2 k8s-server3:10.8.8.3 10.8.8.10 10.8.8.20`
-
-### Step 3: Use k8s!
-
-That's it, you're done!
 
 ## Limitations
 
