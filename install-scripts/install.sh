@@ -3,6 +3,8 @@
 SERVER1=$1
 SERVER2=$2
 SERVER3=$3
+LB_RANGE_START=$4
+LB_RANGE_END=$5
 
 IFS=':' read server_name server_ip <<< "$SERVER1"
 SERVER1_NAME=$server_name
@@ -19,7 +21,7 @@ SERVER3_IP=$server_ip
 server_names=($SERVER1_NAME $SERVER2_NAME $SERVER3_NAME)
 server_pairs=($SERVER1 $SERVER2 $SERVER3)
 
-echo "Generating etcd config files..."
+echo "Generating config files..."
 for server_pair in "${server_pairs[@]}"
 do
 	IFS=':' read THIS_SERVER_NAME THIS_SERVER_IP <<< "$server_pair"
@@ -33,6 +35,13 @@ do
 		-D __SERVER3_IP__=$SERVER3_IP \
 		etcd.default.template > $THIS_SERVER_NAME.etcd.default
 done
+
+m4 -D __LB_RANGE_START__=$LB_RANGE_START \
+	-D __LB_RANGE_END=$LB_RANGE_END \
+	metallb-config.yml.template > metallb-config.yml
+
+m4 -D __LB_RANGE_START__=$LB_RANGE_START \
+	nginx.yml.template > nginx.yml
 
 for server_name in "${server_names[@]}"
 do	
@@ -112,6 +121,12 @@ done
 
 echo "Modifying local kube config..."
 sed -e "s/127\.0\.0\.1:6443/$SERVER1_NAME:6443/g" -i '' ~/.kube/config
+
+echo "Deploying Metal LB..."
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml
+kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)"
+kubectl apply -f metallb-config.yml
 
 echo "Deploying k8s dashboard..."
 kubectl create -f dashboard-2.0.3-recommended.yaml

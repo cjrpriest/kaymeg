@@ -30,3 +30,7 @@ Temporary Items
 .apdisk
 
 # End of https://www.toptal.com/developers/gitignore/api/macos
+
+*.etcd.default
+metallb-config.yml
+nginx.yml

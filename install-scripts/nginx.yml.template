@@ -84,10 +84,11 @@ kind: Service
 metadata:
   name: nginx-service
 spec:
-  type: NodePort
+  type: LoadBalancer
+  loadBalancerIP: __LB_RANGE_START__
   selector:
     app: nginx
   ports:
     - protocol: TCP
-      port: 80
+      port: 88
       targetPort: 80
