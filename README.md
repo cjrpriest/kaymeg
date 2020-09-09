@@ -14,15 +14,16 @@ Most of the setup is automated, allowing for fast provisioning in cloud and virt
 ## Components
 
 - ✅ Debian 10.4
-- ✅ k3s
-- ✅ etcd
+- ✅ k3s (compiled with GlusterFS support)
+- ✅ External etcd (should not be needed once k3s is certified with embedded etcd support)
 - ✅ GlusterFS
-  - ✅ NFS access to GlusterFS volumes
-- ⏳ Metal LB
+  - ✅ NFS access to GlusterFS volumes (via Ganesha)
+- ✅ Kubernetes Dashboard
+- ✅ MetalLB
 
 ## Prerequisites
 
-- At least three available nodes (VMs or bare metal)
+- Three available nodes (VMs or bare metal)
   - each node to have two disks: <code>/dev/sda</code> for the OS and programs, <code>/dev/sdb</code> for data
 - Debian netinst installation media
 - An internet connection
@@ -45,10 +46,7 @@ Whichever way you choose to go, you must end up with:
 - An IP address for each node that does not change (not necessarily _static_, it can still be issued dynamically)
 - A DNS resolvable name
 
-For the purposes of this guide, I'll be using the following node names:
-- `k8s-server1`
-- `k8s-server2`
-- `k8s-server3`
+It might make sense to select some names and addresses that are easy to remember, such as `10.8.8.1`, `10.8.8.2`, `10.8.8.3`, and `k8s-server1`, `k8s-server2`, `k8s-server3`.
 
 #### Install Debian
 
@@ -89,9 +87,65 @@ After Debian has booted for the first time, follow these steps.
 
 At this stage, if you are using virtualised infrastructure, you probably want to shutdown your instance and take a snapshot, as from here things are more automated 
 
-### Step 2: 
+### Step 2: Run install script
 
+#### Clone this repo
+
+1. Clone this repo: `git clone https://github.com/cjrpriest/k3s-etcd-glusterfs-metallb`
+1. Execute `install.sh` (see below for usage)
+
+## Usage `install.sh`
+
+`install.sh SERVER1_DETAILS SERVER2_DETAILS SERVER3_DETAILS LB_RANGE_START LB_RANGE_END`
+
+| Argument | Description | Example
+|--|--|--|
+|`SERVER1_DETAILS`| DNS name and IP address of 1st server, in the format `dns_name:ip_address`| `k8s-server1:10.8.8.1`|
+|`SERVER2_DETAILS`| DNS name and IP address of 1st server, in the format `dns_name:ip_address`| `k8s-server2:10.8.8.2`|
+|`SERVER3_DETAILS`| DNS name and IP address of 1st server, in the format `dns_name:ip_address`| `k8s-server3:10.8.8.3`|
+|`LB_RANGE_START`| The first IP address in the range available for the load balancer to use | `10.8.8.10`|
+|`LB_RANGE_END`| The last IP address in the range available for the load balancer to use | `10.8.8.20`|
+
+Example Usage: 
+`./install.sh k8s-server1:10.8.8.1 k8s-server2:10.8.8.2 k8s-server3:10.8.8.3 10.8.8.10 10.8.8.20`
+
+### Step 3: Use k8s!
+
+That's it, you're done!
 
 ## Limitations
 
 ### Load Balancer
+
+As we cannot replicate a true external load balancer, then there are some limitations. Notably, they are:
+- **Slow / broken failover**: MetalLB relies on clients to change the MAC address that they are sending traffic to, once a failure occurs. This isn't completely bug free, but should be fine in modern OSes and devices
+- **Single node bottlenecking**: Clients will always send all traffic for a service to one node, and MetalLB distributes this internally within the cluster. This could (theoretically) result in a network bottleneck. However, unless your use case involves each node processing data that is more than a third of the networking capacity of a single node (unlikely), then you are probably going to be ok.
+
+These limitations are described in more detail [over in the MetalLB documentation](https://metallb.universe.tf/concepts/layer2/)
+
+## Contributing
+
+Contributions are what make the open source community such an amazing place to be learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+## Contact
+
+Chris Priest - [@cjrpriest](https://twitter.com/cjrpriest)
+Project Link: [https://github.com/cjrpriest/k3s-etcd-glusterfs-metallb](https://github.com/cjrpriest/k3s-etcd-glusterfs-metallb)
+
+## Acknowledgements
+
+- [k3s](https://k3s.io)
+- [GlusterFS](https://www.gluster.org)
+- [etcd](https://etcd.io)
+- [MetalLB](https://metallb.universe.tf)
+- [Choose an Open Source License](https://choosealicense.com)
