@@ -50,9 +50,6 @@ do
 	  sleep 1
 	done
 
-	echo "Install supporting packages..."
-	ssh root@$server_name apt-get install -y wget curl ntp xfsprogs gnupg
-
 	echo "Copying etcd config..."
 	scp $server_name.etcd.default root@$server_name:/etc/default/etcd
 
@@ -60,8 +57,17 @@ do
 	scp policy-rc.d root@$server_name:/usr/sbin/policy-rc.d
 	ssh root@$server_name chmod +x /usr/sbin/policy-rc.d
 
-	echo "Install etcd..."
-	ssh root@$server_name 'apt-get -o DPkg::Options::="--force-confold" -y install etcd'
+	echo "Installing gnupg..."
+	ssh root@$server_name apt-get install -y gnupg
+
+	echo "Updating apt for gluster..."
+	scp gluster8-rsa.pub root@$server_name:/root/gluster8-rsa.pub
+	ssh root@$server_name 'apt-key add /root/gluster8-rsa.pub'
+	scp gluster.list root@$server_name:/etc/apt/sources.list.d/gluster.list
+	ssh root@$server_name 'apt-get update'
+
+	echo "Installing software..."
+	ssh root@$server_name 'apt-get -o DPkg::Options::="--force-confold" -y install etcd wget curl ntp xfsprogs glusterfs-server nfs-ganesha nfs-ganesha-gluster'
 done
 
 for server_name in "${server_names[@]}"
