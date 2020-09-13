@@ -1,4 +1,34 @@
 apiVersion: v1
+kind: Endpoints
+metadata:
+  name: glusterfs-cluster
+subsets:
+- addresses:
+  - ip: 10.2.2.201
+  ports:
+  - port: 1
+- addresses:
+  - ip: 10.2.2.202
+  ports:
+  - port: 1
+- addresses:
+  - ip: 10.2.2.203
+  ports:
+  - port: 1
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: glusterfs-cluster
+spec:
+  ports:
+  - port: 1
+
+---
+
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: nginx-config
@@ -43,7 +73,9 @@ data:
             }
         }
     }
+
 ---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -78,7 +110,9 @@ spec:
       - name: config
         configMap:
           name: nginx-config
+
 ---
+
 apiVersion: v1
 kind: Service
 metadata:

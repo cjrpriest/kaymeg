@@ -158,9 +158,9 @@ then
 	kubectl create -f dashboard-2.0.3-recommended.yaml
 	kubectl create -f dashboard.admin-user.yml -f dashboard.admin-user-role.yml
 
-	echo "Deploying gluster service and endpoints..."
-	kubectl apply -f gluster-endpoints.yml
-	kubectl apply -f gluster-service.yml
+	# echo "Deploying gluster service and endpoints..."
+	# kubectl apply -f gluster-endpoints.yml
+	# kubectl apply -f gluster-service.yml
 
 	echo "Deploying demo application..."
 	kubectl apply -f nginx.yml
