@@ -1,7 +1,7 @@
 
-# k3s-etcd-glusterfs-metallb
+# kaymeg
 
-This guide intends to walk you through setting up k3s, etcd, GlusterFS & Metal LB to form a simple, lightweight, cheap to run, bare metal Kubernetes cluster.
+**kaymeg** is a set of scripts that combines k3s (**kay**), Metal LB (**m**), etcd (**e**) and GlusterFS (**g**) to form a simple, lightweight, cheap to build & run, bare metal Kubernetes cluster.
 
 Most of the setup is automated, allowing for fast provisioning in cloud and virtual environments.
 
@@ -147,7 +147,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 ## Contact
 
 Chris Priest - [@cjrpriest](https://twitter.com/cjrpriest)
-Project Link: [https://github.com/cjrpriest/k3s-etcd-glusterfs-metallb](https://github.com/cjrpriest/k3s-etcd-glusterfs-metallb)
+Project Link: [https://github.com/cjrpriest/kaymeg](https://github.com/cjrpriest/kaymeg)
 
 ## Acknowledgements
 
