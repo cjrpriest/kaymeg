@@ -1,3 +1,6 @@
+<p align="center">
+  <img src="https://github.com/cjrpriest/kaymeg/raw/master/logo.png" />
+</p>
 
 # kaymeg
 
