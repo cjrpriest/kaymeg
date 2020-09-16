@@ -17,7 +17,7 @@ Most of the setup is automated, allowing for fast provisioning in cloud and virt
 ## Components
 
 - ✅ Debian 10.4
-- ✅ k3s (compiled with GlusterFS support)
+- ✅ k3s (compiled with GlusterFS support, leveraging [k3s-glusterfs](https://github.com/cjrpriest/k3s-glusterfs)
 - ✅ External etcd (should not be needed once k3s is certified with embedded etcd support)
 - ✅ GlusterFS
   - ✅ NFS access to GlusterFS volumes (via Ganesha)
