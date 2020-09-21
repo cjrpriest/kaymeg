@@ -4,7 +4,7 @@
 
 # kaymeg
 
-**kaymeg** is a set of scripts that combines k3s (**kay**), Metal LB (**m**), etcd (**e**) and GlusterFS (**g**) to form a simple, lightweight, cheap to build & run, bare metal, high availability Kubernetes cluster.
+**kaymeg** is a set of scripts that combines [k3s](https://k3s.io) (**kay**), [Metal LB](https://metallb.universe.tf) (**m**), [etcd](https://etcd.io) (**e**) and [GlusterFS](https://www.gluster.org) (**g**) to form a simple, lightweight, cheap to build & run, bare metal, high availability Kubernetes cluster.
 
 Most of the installation and configuration is automated, allowing for fast & repeatable provisioning in cloud and bare metal environments.
 
