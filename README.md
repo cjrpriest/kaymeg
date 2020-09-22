@@ -4,6 +4,33 @@
 
 # kaymeg
 
+- [Goals](#goals)
+- [Components](#components)
+- [Prerequisites](#prerequisites)
+- [Warning](#warning)
+- [The Guide](#the-guide)
+  * [Step 1: Base Operating System (Debian) install](#step-1--base-operating-system--debian--install)
+    + [Decide how you will address & name your nodes](#decide-how-you-will-address---name-your-nodes)
+    + [Install Debian](#install-debian)
+    + [Post-install setup](#post-install-setup)
+  * [Step 2: Run `install.sh` script](#step-2--run--installsh--script)
+    + [Clone this repo](#clone-this-repo)
+  * [Step 3: Use k8s!](#step-3--use-k8s-)
+- [Usage `install.sh`](#usage--installsh-)
+- [Rebuilding a failed node](#rebuilding-a-failed-node)
+  * [removing node from gluster](#removing-node-from-gluster)
+  * [run install.sh with extra param](#run-installsh-with-extra-param)
+  * [re-add node to gluster](#re-add-node-to-gluster)
+- [How to build the Debian FAI CD](#how-to-build-the-debian-fai-cd)
+- [Limitations](#limitations)
+  * [Load Balancer](#load-balancer)
+- [Contributing](#contributing)
+- [License](#license)
+- [Contact](#contact)
+- [Acknowledgements](#acknowledgements)
+
+<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
+
 **kaymeg** is a set of scripts that combines [k3s](https://k3s.io) (**kay**), [Metal LB](https://metallb.universe.tf) (**m**), [etcd](https://etcd.io) (**e**) and [GlusterFS](https://www.gluster.org) (**g**) to form a simple, lightweight, cheap to build & run, bare metal, high availability Kubernetes cluster.
 
 Most of the installation and configuration is automated, allowing for fast & repeatable provisioning in cloud and bare metal environments.
@@ -17,7 +44,7 @@ Most of the installation and configuration is automated, allowing for fast & rep
 ## Components
 
 - ✅ Debian 10.4
-- ✅ k3s (compiled with GlusterFS support, leveraging [k3s-glusterfs](https://github.com/cjrpriest/k3s-glusterfs)
+- ✅ k3s (compiled with GlusterFS support, leveraging [k3s-glusterfs](https://github.com/cjrpriest/k3s-glusterfs))
 - ✅ External etcd (should not be needed once k3s is certified with embedded etcd support)
 - ✅ GlusterFS
   - ✅ NFS access to GlusterFS volumes (via Ganesha)
@@ -62,38 +89,25 @@ It might make sense to select some names and addresses that are easy to remember
 
 Follow these steps to setup a base installation of Debian.
 
-1. Insert the Debian installation media and power on the node
-1. At the GRUB menu, select **Graphical install**
-1. Select your language, location and keyboard. For this purposes of this guide, I'm going to assume that you've selected English
-1. For _Hostname_ and _Domain_, you have a couple of choices
-   1. Use a hostname of `localhost` and a domain of `<blank>` if you intend to use DHCP
-   1. Statically define hostname and domain (and even network configuration, if you wish)
-1. Set the root password
-1. Full name for the new user: `k8s`
-1. Username for your account: `k8s`
-1. Set password for user `k8s`
-1. Select **Guided - use entire disk** as the _Partitioning method_
-1. Select disk: **`sda`**
-1. Select **All files in one partition** as the _Partitioning scheme_ 
-1. Select **Finish partitioning and write changes to disk**
-1. Select **Yes** to _Write changes to disk_
-1. Select **No** to _Scan another CD / DVD?_
-1. Select an appropriate _Debian archive mirror_ country, and mirror. Here in the UK I find `mirrorservice.org` to be fast and reliable
-1. Configure _HTTP proxy_ if necessary
-1. Choose if you wish to _Participate in the package usage survey_
-1. Select only the following software to install:
-   1. SSH server
-   1. Standard system utilities
-1. Select **Yes** to _Install the GRUB boot loader_
-1. Select **`/dev/sda`** for the _Device for boot loader installation_
-1. Select **Continue** to _Installation complete_
+_Note: this procedure assumes that you will set hostname and IP address via DHCP_
+
+1. Download [fai-kaymeg.iso](https://github.com/cjrpriest/kaymeg/releases/download/v1/fai-kaymeg.iso), and burn this to a USB drive, or CD.
+   1. This is built using a [fai config customised for kaymeg](https://github.com/cjrpriest/kaymeg-fai-config)
+1. Boot the machine from the ISO, and select `Client standalone installation`<br/>
+![FAI boot menu](docs/images/debian-install-1.png)
+1. Select Kaymeg from the FAI profile menu<br/>
+![FAI profile selection menu](docs/images/debian-install-2.png)
+1. Confirm you are ok with disks being erased<br/>
+![FAI disk wipe confitmation](docs/images/debian-install-3.png)
+1. Wait for installation to complete, and confirm to reboot
+
+The default root password is `k8s` -- make sure this is changed as soon as possible.
   
 #### Post-install setup
 
-After Debian has booted for the first time, follow these steps.
+After Debian has booted for the first time, run the following command to export your public key to the instance:
 
-1. Create `/root/.ssh/authorized_keys` (with permissions `600`) and [add your public key to this](https://www.debian.org/devel/passwordlessssh)
-2. Change `#PermitRootLogin permit-password` to `PermitRootLogin` in `/etc/ssh/sshd_config`
+``ssh root@<server-nanme> "mkdir ~/.ssh && echo `cat ~/.ssh/id_rsa.pub` > ~/.ssh/authorized_keys"``
 
 At this stage, if you are using virtualised infrastructure, you probably want to shutdown your instance and take a snapshot, as from here things are more automated 
 
@@ -122,6 +136,20 @@ That's it, you're done!
 
 Example Usage: 
 `./install.sh k8s-server1:10.8.8.1 k8s-server2:10.8.8.2 k8s-server3:10.8.8.3 10.8.8.10 10.8.8.20`
+
+## How to build the Debian FAI CD
+
+In a Debian based linux distro:
+
+1. `wget -O - https://fai-project.org/download/2BF8D9FE074BCDE4.asc | apt-key add -` to add the FAI project public key to your instance of apt
+1. `echo "deb http://fai-project.org/download buster koeln" > /etc/apt/sources.list.d/fai.list` to add the FAI project source
+1. `apt-get update` to update apt
+1. `aptitude install fai-quickstart` to install the minimum FAI project binaries
+1. `fai-mk-configspace` to create the default configuration
+1. `fai-make-nfsroot` to create the default NFS root data
+1. `rm -Rf /srv/fai/config` to delete the example config files
+1. `git clone https://github.com/cjrpriest/kaymeg-fai-config /srv/fai/config/` to add the Kaymeg config
+1. `fai-cd -C /etc/fai -M fai.iso` to build the ISO
 
 ## Limitations
 

@@ -73,9 +73,6 @@ do
 		scp policy-rc.d root@$server_name:/usr/sbin/policy-rc.d
 		ssh root@$server_name chmod +x /usr/sbin/policy-rc.d
 
-		echo "Installing gnupg..."
-		ssh root@$server_name apt-get install -y gnupg
-
 		echo "Updating apt for gluster..."
 		scp gluster8-rsa.pub root@$server_name:/root/gluster8-rsa.pub
 		ssh root@$server_name 'apt-key add /root/gluster8-rsa.pub'
