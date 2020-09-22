@@ -98,6 +98,7 @@ spec:
         volumeMounts:
         - name: data
           mountPath: /data
+          subPath: nginx
         - name: config
           mountPath: /etc/nginx/nginx.conf
           subPath: nginx.conf
