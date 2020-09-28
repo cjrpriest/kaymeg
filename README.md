@@ -2,34 +2,30 @@
   <img src="https://github.com/cjrpriest/kaymeg/raw/master/logo.png" />
 </p>
 
-# kaymeg
+# kaymeg <!-- omit in toc -->
 
 - [Goals](#goals)
 - [Components](#components)
 - [Prerequisites](#prerequisites)
 - [Warning](#warning)
 - [The Guide](#the-guide)
-  * [Step 1: Base Operating System (Debian) install](#step-1--base-operating-system--debian--install)
-    + [Decide how you will address & name your nodes](#decide-how-you-will-address---name-your-nodes)
-    + [Install Debian](#install-debian)
-    + [Post-install setup](#post-install-setup)
-  * [Step 2: Run `install.sh` script](#step-2--run--installsh--script)
-    + [Clone this repo](#clone-this-repo)
-  * [Step 3: Use k8s!](#step-3--use-k8s-)
-- [Usage `install.sh`](#usage--installsh-)
+  - [Step 1: Base Operating System (Debian) install](#step-1-base-operating-system-debian-install)
+    - [Decide how you will address & name your nodes](#decide-how-you-will-address--name-your-nodes)
+    - [Install Debian](#install-debian)
+    - [Post-install setup](#post-install-setup)
+  - [Step 2: Run `install.sh` script](#step-2-run-installsh-script)
+    - [Clone this repo](#clone-this-repo)
+  - [Step 3: Use k8s!](#step-3-use-k8s)
+- [Usage `install.sh`](#usage-installsh)
 - [Rebuilding a failed node](#rebuilding-a-failed-node)
-  * [removing node from gluster](#removing-node-from-gluster)
-  * [run install.sh with extra param](#run-installsh-with-extra-param)
-  * [re-add node to gluster](#re-add-node-to-gluster)
 - [How to build the Debian FAI CD](#how-to-build-the-debian-fai-cd)
 - [Limitations](#limitations)
-  * [Load Balancer](#load-balancer)
+  - [Load Balancer](#load-balancer)
+- [Known Issues](#known-issues)
 - [Contributing](#contributing)
 - [License](#license)
 - [Contact](#contact)
 - [Acknowledgements](#acknowledgements)
-
-<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 
 **kaymeg** is a set of scripts that combines [k3s](https://k3s.io) (**kay**), [Metal LB](https://metallb.universe.tf) (**m**), [etcd](https://etcd.io) (**e**) and [GlusterFS](https://www.gluster.org) (**g**) to form a simple, lightweight, cheap to build & run, bare metal, high availability Kubernetes cluster.
 
@@ -137,6 +133,35 @@ That's it, you're done!
 Example Usage: 
 `./install.sh k8s-server1:10.8.8.1 k8s-server2:10.8.8.2 k8s-server3:10.8.8.3 10.8.8.10 10.8.8.20`
 
+## Rebuilding a failed node
+
+What if one of the nodes has failed, and it is unrecoverable?
+
+This procedure assumes that you wish to (re)build a node with the same name & IP address etc. There is no requirement that the node is rebuilt on the same hardware.
+
+1. Remove the failed node from the gluster cluster. From a working node, execute:
+   1. `gluster volume info` to verify that there are three recognised bricks in the cluster
+   1. `gluster volume remove-brick gv0 replica 2 <failed-node-name>:/data/brick1/gv0 force` to remove the failed node's brick from the cluster
+   1. `gluster volume info` to verify that there are now two recognised bricks in the cluster
+   1. `gluster peer status` to verify that the failed node is recognised as `Disconnected`
+   1. `gluster peer detach <failed-node-name>` to detach the failed node from the gluster cluster
+   1. `gluster peer status` to verify that the failed node is no longer present
+2. Install base operating system (see [Install Debian](#install-debian) & [Post-install setup](#post-install-setup)) on the failed node
+3. Run the install script with an additional parameter, which instructs it to only setup and configure that node:  `./install.sh k8s-server1:10.8.8.1 k8s-server2:10.8.8.2 k8s-server3:10.8.8.3 10.8.8.10 10.8.8.20 <failed-node-name>`
+4. Re-join the (now rebuilt) node to the gluster cluster. From a (previously) working node, execute:
+   1. `gluster peer probe <failed-node-name>` to re-attach the node the cluster
+   1. `gluster peer status` to verify that the failed node is recognised as `Connected`
+   1. `gluster volume add-brick gv0 replica 3 k8s-server2:/data/brick1/gv0` to re-add the rebuilt node's brick to the cluster
+   1. `gluster volume info` to verify that there are now three recognised bricks in the cluster
+5. Remove the failed node from etcd. From a (previously) working node, execute:
+   1. `etcdctl -C http://<this-nodes-ip-address>:2379 cluster-health` to determine the member id if the failed node
+   2. `etcdctl -C http://<this-nodes-ip-address>:2379 member remove <id-of-failed-node>`
+   3. `etcdctl -C http://<this-nodes-ip-address>:2379 member add <failed-node-name> http://<failed-node-ip-address>:2380`
+6. On the failed node, execute:
+   1. Replace `# ETCD_INITIAL_CLUSTER_STATE="new"` with `ETCD_INITIAL_CLUSTER_STATE="existing"` in `/etc/default/etcd` such that the node knows that it should rejoin the existing cluster
+   2. `systemctl restart etcd` to restart etcd
+7. From a (previously) working node, execute `etcdctl -C http://<this-nodes-ip-address>:2379 cluster-health` to verify that the cluster is in good health
+
 ## How to build the Debian FAI CD
 
 In a Debian based linux distro:
@@ -160,6 +185,10 @@ As we cannot replicate a true external load balancer, then there are some limita
 - **Single node bottlenecking**: Clients will always send all traffic for a service to one node, and MetalLB distributes this internally within the cluster. This could (theoretically) result in a network bottleneck. However, unless your use case involves each node processing data that is more than a third of the networking capacity of a single node (unlikely), then you are probably going to be ok.
 
 These limitations are described in more detail [over in the MetalLB documentation](https://metallb.universe.tf/concepts/layer2/)
+
+## Known Issues
+
+- When a node is rebuilt (according the above procedure) NFS doesn't appear to work. A reboot of the node fixes this. 
 
 ## Contributing
 
