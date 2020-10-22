@@ -129,7 +129,7 @@ do
 	if [[ -z $SINGLE_DEPLOY_TARGET || (! -z $SINGLE_DEPLOY_TARGET && $server_name = $SINGLE_DEPLOY_TARGET) ]]
 	then
 		echo "Installing k3s on $server_name..."
-		ssh root@$server_name "curl -sfL https://raw.githubusercontent.com/cjrpriest/k3s-glusterfs/release-1.18/install.sh | INSTALL_K3S_VERSION=v1.18.9+k3s1+glusterfs INSTALL_K3S_EXEC=\"server --disable traefik --disable servicelb\" sh -s - server --datastore-endpoint http://$SERVER1_IP:2379,http://$SERVER2_IP:2379,http://$SERVER3_IP:2379"
+		ssh root@$server_name "curl -sfL https://raw.githubusercontent.com/cjrpriest/k3s-glusterfs/release-1.19/install.sh | INSTALL_K3S_VERSION=v1.19.1+k3s1+glusterfs INSTALL_K3S_EXEC=\"server --disable traefik --disable servicelb\" sh -s - server --datastore-endpoint http://$SERVER1_IP:2379,http://$SERVER2_IP:2379,http://$SERVER3_IP:2379"
 	fi
 done
 
