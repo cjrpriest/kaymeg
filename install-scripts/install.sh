@@ -46,6 +46,9 @@ m4 -D __LB_RANGE_START__=$LB_RANGE_START \
 	metallb-config.yml.template > metallb-config.yml
 
 m4 -D __LB_RANGE_START__=$LB_RANGE_START \
+	-D __SERVER1_IP__=$SERVER1_IP \
+	-D __SERVER2_IP__=$SERVER2_IP \
+	-D __SERVER3_IP__=$SERVER3_IP \
 	nginx.yml.template > nginx.yml
 
 for server_name in "${server_names[@]}"
