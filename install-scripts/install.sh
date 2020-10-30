@@ -110,7 +110,7 @@ then
 	echo "Setting up glusterfs volume (via $SERVER1_NAME)..."
 	scp gluster-setup-volume.sh root@$SERVER1_NAME:/root/gluster-setup-volume.sh
 	ssh root@$SERVER1_NAME chmod +x /root/gluster-setup-volume.sh
-	ssh root@$SERVER1_NAME /root/gluster-setup-volume.sh
+	ssh root@$SERVER1_NAME "/root/gluster-setup-volume.sh $SERVER1_NAME $SERVER2_NAME $SERVER3_NAME"
 fi
 
 for server_name in "${server_names[@]}"
